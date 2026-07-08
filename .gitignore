@@ -1,4 +1,33 @@
-service-account.json
+# Gradle
+.gradle/
+build/
+**/build/
+
+# IDE
+.idea/
+*.iml
+.kotlin/
+
+# macOS
+.DS_Store
+
+# Android
 local.properties
-.env*
 *.keystore
+captures/
+
+# iOS / Xcode
+iosApp/Pods/
+iosApp/build/
+*.xcuserstate
+**/xcuserdata/
+
+# Kotlin/JS - Wasm
+kotlin-js-store/
+
+# Secretos (ya los tenías)
+service-account.json
+.env*
+
+# Node (para cuando llegue backend/functions)
+node_modules/
