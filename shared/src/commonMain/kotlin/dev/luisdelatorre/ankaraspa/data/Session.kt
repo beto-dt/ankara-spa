@@ -1,5 +1,6 @@
 package dev.luisdelatorre.ankaraspa.data
 
+import com.russhwolf.settings.Settings
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -12,10 +13,17 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 object Session {
-    // TODO(6C): persistir con multiplatform-settings; por ahora vive por sesión.
-    val clientUid: String = Uuid.random().toString()
+    private val settings = Settings()
+
+    /** Anonymous device identity: created once, survives app restarts. */
+    val clientUid: String by lazy {
+        settings.getStringOrNull("clientUid")
+            ?: Uuid.random().toString().also { settings.putString("clientUid", it) }
+    }
 }
 
+// Fixed offset instead of "America/Guayaquil": Ecuador has no DST, and named
+// zones require shipping the multi-MB IANA database to JS/Wasm targets.
 val SPA_TZ = TimeZone.of("UTC-05:00")
 
 @OptIn(ExperimentalTime::class)

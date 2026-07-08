@@ -201,3 +201,21 @@ export const resetDemo = onSchedule(
     console.log(`resetDemo: deleted ${snap.size} past bookings`);
   },
 );
+
+export const getMyBookings = onRequest({ region: 'us-central1', cors: true }, async (req, res) => {
+  const clientUid = String(req.query.clientUid ?? '');
+  if (clientUid.length < 8 || clientUid.length > 64) {
+    res.status(400).json({ error: 'bad_request' });
+    return;
+  }
+  const snap = await db.collection('bookings')
+    .where('clientUid', '==', clientUid)
+    .where('status', '==', 'confirmed')
+    .get();
+  type BookingDoc = { id: string; date: string; time: number } & Record<string, unknown>;
+  const bookings = snap.docs
+    .map((d): BookingDoc => ({ id: d.id, ...d.data() } as BookingDoc))
+    .filter((b) => b.date >= todayKey())
+    .sort((a, b) => a.date.localeCompare(b.date) || a.time - b.time);
+  res.json({ bookings });
+});

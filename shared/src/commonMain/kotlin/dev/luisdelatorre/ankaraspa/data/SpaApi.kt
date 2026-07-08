@@ -42,4 +42,16 @@ class SpaApi {
         if (!res.status.isSuccess()) throw Exception("createBooking ${res.status}")
         return res.body<BookingResponse>().booking
     }
+
+    suspend fun myBookings(clientUid: String): List<Booking> =
+        http.get("$BASE_URL/getMyBookings") { parameter("clientUid", clientUid) }
+            .body<MyBookingsResponse>().bookings
+
+    suspend fun cancelBooking(bookingId: String, clientUid: String) {
+        val res = http.post("$BASE_URL/cancelBooking") {
+            contentType(ContentType.Application.Json)
+            setBody(CancelRequest(bookingId, clientUid))
+        }
+        if (!res.status.isSuccess()) throw Exception("cancelBooking ${res.status}")
+    }
 }
