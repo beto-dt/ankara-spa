@@ -20,3 +20,32 @@ data class Staff(val id: String, val name: String, val services: List<String>)
 
 @Serializable
 data class Catalog(val services: List<Service>, val staff: List<Staff>)
+
+@Serializable
+data class Slot(val time: Int, val staffIds: List<String>)
+
+@Serializable
+data class Availability(val date: String, val serviceId: String, val slots: List<Slot>)
+
+@Serializable
+data class Booking(
+    val id: String,
+    val code: String,
+    val serviceId: String,
+    val staffName: String,
+    val date: String,
+    val time: Int,
+    val status: String,
+)
+
+@Serializable
+data class BookingResponse(val booking: Booking)
+
+@Serializable
+data class CreateBookingRequest(
+    val serviceId: String,
+    val date: String,
+    val time: Int,
+    val clientUid: String,
+    val clientName: String?,
+)
