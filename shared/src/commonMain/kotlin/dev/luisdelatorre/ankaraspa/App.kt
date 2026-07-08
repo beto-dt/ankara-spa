@@ -1,8 +1,10 @@
 package dev.luisdelatorre.ankaraspa
+
 import AnkaraTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -14,51 +16,78 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.luisdelatorre.ankaraspa.data.Catalog
+import dev.luisdelatorre.ankaraspa.data.SpaApi
 import dev.luisdelatorre.ankaraspa.theme.AnkaraColors
 
 @Composable
 fun App() {
     AnkaraTheme {
-        val services = listOf(
-            "Sauna finlandés" to "60 min · calor seco y descanso profundo",
-            "Masaje relajante" to "60 min · tensión fuera, calma dentro",
-            "Piedras calientes" to "75 min · el clásico que nunca falla",
-        )
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().background(AnkaraColors.Cream),
-            contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
-                Column {
-                    Text("ANKARA", style = MaterialTheme.typography.headlineMedium)
-                    Text(
-                        "sauna & masajes",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AnkaraColors.InkSoft,
-                    )
-                    Spacer(Modifier.height(16.dp))
+        var catalog by remember { mutableStateOf<Catalog?>(null) }
+        var failed by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            catalog = runCatching { SpaApi().catalog() }
+                .onFailure { failed = true }
+                .getOrNull()
+        }
+
+        when {
+            catalog == null && !failed -> {
+                Box(Modifier.fillMaxSize().background(AnkaraColors.Cream), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = AnkaraColors.Sage)
                 }
             }
-            items(services) { (name, detail) ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = AnkaraColors.Surface),
-                    border = BorderStroke(1.dp, AnkaraColors.Line),
+            failed -> {
+                Box(Modifier.fillMaxSize().background(AnkaraColors.Cream), contentAlignment = Alignment.Center) {
+                    Text("No pudimos cargar los servicios. Intenta de nuevo.", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().background(AnkaraColors.Cream),
+                    contentPadding = PaddingValues(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Column(Modifier.padding(20.dp)) {
-                        Text(name, style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            detail,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AnkaraColors.InkSoft,
-                        )
+                    item {
+                        Column {
+                            Text("ANKARA", style = MaterialTheme.typography.headlineMedium)
+                            Text(
+                                "sauna & masajes",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AnkaraColors.InkSoft,
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
+                    }
+                    items(catalog!!.services, key = { it.id }) { service ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = AnkaraColors.Surface),
+                            border = BorderStroke(1.dp, AnkaraColors.Line),
+                        ) {
+                            Column(Modifier.padding(20.dp)) {
+                                Text(service.name.es, style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "${service.durationMin} min · $${service.price} — ${service.description.es}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = AnkaraColors.InkSoft,
+                                )
+                            }
+                        }
                     }
                 }
             }
