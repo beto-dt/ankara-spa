@@ -1,66 +1,48 @@
 package dev.luisdelatorre.ankaraspa
+
 import AnkaraTheme
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import dev.luisdelatorre.ankaraspa.theme.AnkaraColors
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import dev.luisdelatorre.ankaraspa.ui.Routes
+import dev.luisdelatorre.ankaraspa.ui.screens.*
+import androidx.savedstate.read
+
 
 @Composable
 fun App() {
     AnkaraTheme {
-        val services = listOf(
-            "Sauna finlandés" to "60 min · calor seco y descanso profundo",
-            "Masaje relajante" to "60 min · tensión fuera, calma dentro",
-            "Piedras calientes" to "75 min · el clásico que nunca falla",
-        )
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().background(AnkaraColors.Cream),
-            contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
-                Column {
-                    Text("ANKARA", style = MaterialTheme.typography.headlineMedium)
-                    Text(
-                        "sauna & masajes",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AnkaraColors.InkSoft,
-                    )
-                    Spacer(Modifier.height(16.dp))
-                }
+        val nav = rememberNavController()
+        NavHost(navController = nav, startDestination = Routes.HOME) {
+            composable(Routes.HOME) {
+                HomeScreen(
+                    onServiceClick = { nav.navigate(Routes.service(it)) },
+                    onMyBookings = { nav.navigate(Routes.MY_BOOKINGS) },
+                )
             }
-            items(services) { (name, detail) ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = AnkaraColors.Surface),
-                    border = BorderStroke(1.dp, AnkaraColors.Line),
-                ) {
-                    Column(Modifier.padding(20.dp)) {
-                        Text(name, style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            detail,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = AnkaraColors.InkSoft,
-                        )
-                    }
-                }
+            composable(Routes.SERVICE) { back ->
+                ServiceDetailScreen(
+                    serviceId = back.arguments?.read { getStringOrNull("serviceId") } ?: "",
+                    onBook = { nav.navigate(Routes.booking(it)) },
+                    onBack = { nav.popBackStack() },
+                )
+            }
+            composable(Routes.BOOKING) { back ->
+                BookingScreen(
+                    serviceId = back.arguments?.read { getStringOrNull("serviceId") } ?: "",
+                    onSuccess = { code -> nav.navigate(Routes.success(code)) },
+                    onBack = { nav.popBackStack() },
+                )
+            }
+            composable(Routes.SUCCESS) { back ->
+                SuccessScreen(
+                    code = back.arguments?.read { getStringOrNull("code") } ?: "",
+                    onDone = { nav.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } } },
+                )
+            }
+            composable(Routes.MY_BOOKINGS) {
+                MyBookingsScreen(onBack = { nav.popBackStack() })
             }
         }
     }
