@@ -49,3 +49,9 @@ data class CreateBookingRequest(
     val clientUid: String,
     val clientName: String?,
 )
+
+@Serializable
+data class MyBookingsResponse(val bookings: List<Booking>)
+
+@Serializable
+data class CancelRequest(val bookingId: String, val clientUid: String)
