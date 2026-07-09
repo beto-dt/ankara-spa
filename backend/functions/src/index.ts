@@ -2,6 +2,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
 if (!getApps().length) initializeApp();
 const db = getFirestore();
@@ -9,6 +10,7 @@ const db = getFirestore();
 const OPEN_HOUR = 10;
 const CLOSE_HOUR = 20; // last slot starts at 19:00
 const DAYS_AHEAD = 7;
+const ADMIN_EMAIL = 'luis.atorred24@gmail.com';
 
 class SlotTakenError extends Error {}
 
@@ -52,6 +54,61 @@ async function bookedHoursByStaff(date: string): Promise<Map<string, Set<number>
   }
   return map;
 }
+
+async function verifyAdmin(authHeader: string | undefined): Promise<{ email: string | null; reason: string }> {
+  if (!authHeader?.startsWith('Bearer ')) return { email: null, reason: 'no_header' };
+  try {
+    const decoded = await getAuth().verifyIdToken(authHeader.slice(7));
+    if (decoded.email !== ADMIN_EMAIL) return { email: null, reason: `email_mismatch:${decoded.email ?? 'none'}` };
+    return { email: decoded.email, reason: 'ok' };
+  } catch (e) {
+    return { email: null, reason: `verify_failed:${(e as Error).message.slice(0, 300)}` };
+  }
+}
+
+export const getAgenda = onRequest({ region: 'us-central1', cors: true }, async (req, res) => {
+  const auth = await verifyAdmin(req.headers.authorization);
+  if (!auth.email) {
+    res.status(401).json({ error: 'unauthorized', debug: auth.reason });
+    return;
+  }
+  const date = typeof req.query.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
+    ? req.query.date
+    : todayKey();
+  const snap = await db.collection('bookings')
+    .where('date', '==', date)
+    .get();
+  type AgendaDoc = { id: string; time: number; status: string } & Record<string, unknown>;
+  const bookings = snap.docs
+    .map((d): AgendaDoc => ({ id: d.id, ...d.data() } as AgendaDoc))
+    .filter((b) => b.status !== 'cancelled')
+    .sort((a, b) => a.time - b.time);
+  res.json({ date, bookings });
+});
+
+export const updateBookingStatus = onRequest({ region: 'us-central1', cors: true }, async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'method_not_allowed' });
+    return;
+  }
+  const auth = await verifyAdmin(req.headers.authorization);
+  if (!auth.email) {
+    res.status(401).json({ error: 'unauthorized', debug: auth.reason });
+    return;
+  }
+  const { bookingId, status } = (req.body ?? {}) as Record<string, unknown>;
+  if (typeof bookingId !== 'string' || (status !== 'completed' && status !== 'no_show' && status !== 'confirmed')) {
+    res.status(400).json({ error: 'bad_request' });
+    return;
+  }
+  const ref = db.doc(`bookings/${bookingId}`);
+  if (!(await ref.get()).exists) {
+    res.status(404).json({ error: 'not_found' });
+    return;
+  }
+  await ref.update({ status });
+  res.json({ ok: true });
+});
 
 export const getCatalog = onRequest({ region: 'us-central1', cors: true }, async (req, res) => {
   const [services, staff] = await Promise.all([

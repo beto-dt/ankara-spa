@@ -5,10 +5,14 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import dev.luisdelatorre.ankaraspa.ui.Routes
-import dev.luisdelatorre.ankaraspa.ui.screens.*
 import androidx.savedstate.read
-
+import dev.luisdelatorre.ankaraspa.ui.Routes
+import dev.luisdelatorre.ankaraspa.ui.screens.AdminScreen
+import dev.luisdelatorre.ankaraspa.ui.screens.BookingScreen
+import dev.luisdelatorre.ankaraspa.ui.screens.HomeScreen
+import dev.luisdelatorre.ankaraspa.ui.screens.MyBookingsScreen
+import dev.luisdelatorre.ankaraspa.ui.screens.ServiceDetailScreen
+import dev.luisdelatorre.ankaraspa.ui.screens.SuccessScreen
 
 @Composable
 fun App() {
@@ -19,6 +23,7 @@ fun App() {
                 HomeScreen(
                     onServiceClick = { nav.navigate(Routes.service(it)) },
                     onMyBookings = { nav.navigate(Routes.MY_BOOKINGS) },
+                    onAdmin = { nav.navigate(Routes.ADMIN) },
                 )
             }
             composable(Routes.SERVICE) { back ->
@@ -43,6 +48,9 @@ fun App() {
             }
             composable(Routes.MY_BOOKINGS) {
                 MyBookingsScreen(onBack = { nav.popBackStack() })
+            }
+            composable(Routes.ADMIN) {
+                AdminScreen(onBack = { nav.popBackStack() })
             }
         }
     }
