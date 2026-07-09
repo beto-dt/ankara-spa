@@ -34,7 +34,7 @@ import dev.luisdelatorre.ankaraspa.data.SpaApi
 import dev.luisdelatorre.ankaraspa.theme.AnkaraColors
 
 @Composable
-fun HomeScreen(onServiceClick: (String) -> Unit, onMyBookings: () -> Unit) {
+fun HomeScreen(onServiceClick: (String) -> Unit, onMyBookings: () -> Unit, onAdmin: () -> Unit) {
     var catalog by remember { mutableStateOf<Catalog?>(null) }
     var failed by remember { mutableStateOf(false) }
 
@@ -102,6 +102,15 @@ fun HomeScreen(onServiceClick: (String) -> Unit, onMyBookings: () -> Unit) {
                             )
                         }
                     }
+                }
+                item {
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        "Admin",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = AnkaraColors.Line,
+                        modifier = Modifier.clickable { onAdmin() },
+                    )
                 }
             }
         }
