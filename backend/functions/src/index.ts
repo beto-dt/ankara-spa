@@ -276,3 +276,51 @@ export const getMyBookings = onRequest({ region: 'us-central1', cors: true }, as
     .sort((a, b) => a.date.localeCompare(b.date) || a.time - b.time);
   res.json({ bookings });
 });
+
+export const getMetrics = onRequest({ region: 'us-central1', cors: true }, async (req, res) => {
+  const auth = await verifyAdmin(req.headers.authorization);
+  if (!auth.email) {
+    res.status(401).json({ error: 'unauthorized' });
+    return;
+  }
+  // Ventana: los últimos 14 días de servicio, incluido hoy.
+  const end = todayKey();
+  const start = new Date(Date.now() - 13 * 86400000)
+    .toLocaleDateString('sv-SE', { timeZone: 'America/Guayaquil' });
+
+  const snap = await db.collection('bookings')
+    .where('date', '>=', start)
+    .where('date', '<=', end)
+    .get();
+
+  type Doc = { date: string; serviceId: string; staffId: string; staffName: string; status: string };
+  const docs = snap.docs.map((d) => d.data() as Doc);
+  const active = docs.filter((b) => b.status !== 'cancelled');
+
+  const days: string[] = [];
+  for (let i = 13; i >= 0; i--) {
+    days.push(new Date(Date.now() - i * 86400000).toLocaleDateString('sv-SE', { timeZone: 'America/Guayaquil' }));
+  }
+
+  const count = <T>(items: T[], key: (x: T) => string): Record<string, number> =>
+    items.reduce((acc, x) => ({ ...acc, [key(x)]: (acc[key(x)] ?? 0) + 1 }), {} as Record<string, number>);
+
+  const byDayMap = count(active, (b) => b.date);
+  const byServiceMap = count(active, (b) => b.serviceId);
+  const staffNames = new Map(active.map((b) => [b.staffId, b.staffName]));
+  const byStaffMap = count(active, (b) => b.staffId);
+  const statuses = count(docs, (b) => b.status);
+
+  res.json({
+    start,
+    end,
+    byDay: days.map((d) => ({ date: d, count: byDayMap[d] ?? 0 })),
+    byService: Object.entries(byServiceMap)
+      .map(([serviceId, count]) => ({ serviceId, count }))
+      .sort((a, b) => b.count - a.count),
+    byStaff: Object.entries(byStaffMap)
+      .map(([staffId, count]) => ({ staffId, name: staffNames.get(staffId) ?? staffId, count }))
+      .sort((a, b) => b.count - a.count),
+    statuses,
+  });
+});
