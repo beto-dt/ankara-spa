@@ -82,3 +82,22 @@ data class AgendaResponse(val date: String, val bookings: List<AgendaBooking>)
 
 @Serializable
 data class UpdateStatusRequest(val bookingId: String, val status: String)
+
+@Serializable
+data class MetricDay(val date: String, val count: Int)
+
+@Serializable
+data class MetricService(val serviceId: String, val count: Int)
+
+@Serializable
+data class MetricStaff(val staffId: String, val name: String, val count: Int)
+
+@Serializable
+data class MetricsResponse(
+    val start: String,
+    val end: String,
+    val byDay: List<MetricDay>,
+    val byService: List<MetricService>,
+    val byStaff: List<MetricStaff>,
+    val statuses: Map<String, Int> = emptyMap(),
+)

@@ -6,6 +6,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -45,8 +46,14 @@ class AdminApi {
         return res.body<LoginResponse>().idToken
     }
 
-    suspend fun agenda(token: String): AgendaResponse =
+    suspend fun agenda(token: String, date: String? = null): AgendaResponse =
         http.get("$BASE_URL/getAgenda") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            if (date != null) parameter("date", date)
+        }.body()
+
+    suspend fun metrics(token: String): MetricsResponse =
+        http.get("$BASE_URL/getMetrics") {
             header(HttpHeaders.Authorization, "Bearer $token")
         }.body()
 
